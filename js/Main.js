@@ -1,6 +1,9 @@
-var Dog = Dog || {};
+var Defmech = Defmech || {};
 
-Dog.Main = (function() {
+Defmech.Main = (function() {
+	// Should scene show helpers
+	var USE_HELPERS = false;
+
 	// scene vars
 	var scene, camera, renderer, orbitControls;
 
@@ -12,8 +15,12 @@ Dog.Main = (function() {
 	// texture vars
 	var textureBumpMapLoader, textureMapBump;
 
-	// Should scene show helpers
-	var USE_HELPERS = false;
+
+	// Capture
+	var capturer = new CCapture({
+		format: 'webm'
+	});
+	var isCapturing = false;
 
 	function setup() {
 
@@ -24,13 +31,11 @@ Dog.Main = (function() {
 
 		// init camera
 		camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
-		camera.position.x = Dog.Utils.randomRange(300, 500);
-		camera.position.y = Dog.Utils.randomRange(300, 500);
-		camera.position.z = Dog.Utils.randomRange(300, 500);
+		camera.position.x = -Defmech.Utils.randomRange(300, 500);
+		camera.position.y = Defmech.Utils.randomRange(300, 500);
+		camera.position.z = Defmech.Utils.randomRange(300, 500);
 
-		console.log('Main.js', camera.position);
-
-		camera.lookAt(0,0,0)
+		camera.lookAt(0, 0, 0);
 
 		// init renderer
 		renderer = new THREE.WebGLRenderer({
@@ -39,6 +44,8 @@ Dog.Main = (function() {
 		});
 		renderer.setSize(window.innerWidth, window.innerHeight);
 		renderer.autoClear = false;
+		renderer.shadowMap.enabled = true;
+		renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 		document.body.appendChild(renderer.domElement);
 
@@ -50,23 +57,40 @@ Dog.Main = (function() {
 		window.addEventListener('resize', onWindowResize, false);
 
 		// load images
-		textureBumpMapLoader.load('./img/logo_dog.png', function(texture) {
+		textureBumpMapLoader.load('./img/texture.png', function(texture) {
 			textureMapBump = texture;
-
 			init();
 		});
 
-		if (USE_HELPERS) scene.add(new THREE.AxisHelper(500));
+		if (USE_HELPERS) scene.add(new THREE.AxisHelper(300));
 	}
 
 	function init() {
 
 		// add content
+		addFloor();
+		addSkyBox();
 		addLighting();
 		addMesh();
 
 		// init keyboard listener
 		initKeyboard();
+	}
+
+	function handleKeyboardR(event) {
+		if (!isCapturing) {
+			isCapturing = true;
+			capturer.start();
+			console.log('Main.js', 'Started recording... ');
+
+		} else {
+			isCapturing = false;
+			capturer.stop();
+
+			// default save, will download automatically a file called {name}.extension (webm/gif/tar)
+			capturer.save();
+			console.log('Main.js', 'Ended recording... ');
+		}
 	}
 
 	function initKeyboard() {
@@ -77,6 +101,9 @@ Dog.Main = (function() {
 			switch (event.keyCode) {
 				case 80: // p
 					exportCanvasImageDataToPNG();
+					break;
+				case 82: // r
+					handleKeyboardR();
 					break;
 			}
 		});
@@ -104,25 +131,70 @@ Dog.Main = (function() {
 
 	function addLighting() {
 		// Add a light
-		var spotLight1 = new THREE.DirectionalLight(0xffffff, 0.75);
-		spotLight1.position.set(Dog.Utils.randomRange(300, 500), Dog.Utils.randomRange(300, 500), Dog.Utils.randomRange(300, 500));
-		spotLight1.target.position.set(0, 0, 0);
-		scene.add(spotLight1);
+		var light1 = new THREE.DirectionalLight(0xffffff, 0.5);
+		light1.position.set(Defmech.Utils.randomRange(300, 500), Defmech.Utils.randomRange(300, 500), Defmech.Utils.randomRange(300, 500));
 
-		// helper
-		if (USE_HELPERS) scene.add(new THREE.DirectionalLightHelper(spotLight1));
+		light1.target.position.set(0, 0, 0);
+		// Shadow
+		var shadowSize = 1024;
+
+		light1.castShadow = true;
+		light1.shadow.mapSize.width = shadowSize * 2;
+		light1.shadow.mapSize.height = shadowSize * 2;
+		light1.shadow.camera.near = 400;
+		light1.shadow.camera.far = 1300;
+		light1.shadow.camera.left = -shadowSize / 2;
+		light1.shadow.camera.right = shadowSize / 2;
+		light1.shadow.camera.top = shadowSize / 2;
+		light1.shadow.camera.bottom = -shadowSize / 2;
+
+		scene.add(light1);
 
 		// add another spotlight
-		var spotLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-		spotLight2.position.set(Dog.Utils.randomRange(-300, -500), Dog.Utils.randomRange(-300, -500), Dog.Utils.randomRange(-300, -500));
-		spotLight2.target.position.set(0, 0, 0);
-		scene.add(spotLight2);
+		var light2 = new THREE.DirectionalLight(0xffffff, 0.125);
+		light2.position.set(Defmech.Utils.randomRange(-300, -500), Defmech.Utils.randomRange(-300, -500), Defmech.Utils.randomRange(-300, -500));
+		light2.target.position.set(0, 0, 0);
+		scene.add(light2);
 
 		// helper
-		if (USE_HELPERS) scene.add(new THREE.DirectionalLightHelper(spotLight2));
+		if (USE_HELPERS) {
+			scene.add(new THREE.DirectionalLightHelper(light1));
+			scene.add(new THREE.DirectionalLightHelper(light2));
+			scene.add(new THREE.CameraHelper(light1.shadow.camera));
+		}
 
 		// Add and additional AmbientLight
+		// scene.add(new THREE.AmbientLight(0xAAAAAA));
 		scene.add(new THREE.AmbientLight(0x222222));
+	}
+
+	function addFloor() {
+		var floorMaterial = new THREE.MeshPhongMaterial({
+			color: 0xFFFFFF,
+			shading: THREE.FlatShading,
+			emissive: 0x666666,
+			specular: 0x111111,
+			shininess: 30,
+		});
+
+		var floorGeometry = new THREE.PlaneBufferGeometry(2000, 2000);
+		var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+		floor.receiveShadow = true;
+		floor.rotation.x = -Math.PI / 2;
+		floor.position.y = -(200 / 2);
+		scene.add(floor);
+	}
+
+	function addSkyBox() {
+		var skyBoxWidth = 2000;
+		var skybox = new THREE.Mesh(new THREE.BoxGeometry(skyBoxWidth, skyBoxWidth, skyBoxWidth), new THREE.MeshBasicMaterial({
+			// color: 0xBBBBBB,
+			color: new THREE.Color('hsl(354, 7%, 71%)'),
+			// HSL(354, 7%, 71%)
+			side: THREE.BackSide,
+		}));
+		skybox.receiveShadow = true;
+		scene.add(skybox);
 	}
 
 	function addMesh() {
@@ -137,9 +209,11 @@ Dog.Main = (function() {
 		});
 
 		var mesh = new THREE.Mesh(geometry, material);
+		mesh.receiveShadow = true;
+		mesh.castShadow = true;
 
 		// give it some random rotation
-		// mesh.rotation.y = Dog.Utils.degToRad(Dog.Utils.randomRange(45, 60));
+		// mesh.rotation.y = Defmech.Utils.degToRad(Defmech.Utils.randomRange(45, 60));
 
 		// Add mesh to scene
 		scene.add(mesh);
@@ -153,6 +227,8 @@ Dog.Main = (function() {
 		renderer.clear();
 		renderer.render(scene, camera);
 		orbitControls.update();
+
+		capturer.capture(renderer.domElement);
 
 		if (getCanvasImageData === true) {
 			canvasImageData = renderer.domElement.toDataURL();

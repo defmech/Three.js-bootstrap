@@ -1,4 +1,4 @@
-var Dog = Dog ||
+var Defmech = Defmech ||
 {};
 
 /**
@@ -28,7 +28,7 @@ var Dog = Dog ||
 	}
 })();
 
-Dog.WebGLDetect = (function()
+Defmech.WebGLDetect = (function()
 {
 	var canvas, ctx;
 
@@ -41,7 +41,7 @@ Dog.WebGLDetect = (function()
 	}
 	catch (error)
 	{
-		console.log('Dog.WebGLDetect', error);
+		console.log('Defmech.WebGLDetect', error);
 	}
 
 	if (ctx !== undefined && ctx !== null)

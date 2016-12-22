@@ -4,7 +4,7 @@ window.log = function()
 	if (this.console) console.log(Array.prototype.slice.call(arguments));
 };
 
-var Dog = Dog ||
+var Defmech = Defmech ||
 {};
 
 (function()
@@ -69,5 +69,5 @@ var Dog = Dog ||
 		return Math.floor(min + Math.random() * (max - min + 1));
 	};
 
-	Dog.Utils = Utils;
+	Defmech.Utils = Utils;
 })();
