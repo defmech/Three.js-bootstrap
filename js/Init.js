@@ -5,7 +5,7 @@ if (Defmech.WebGLDetect.canProceed)
 		[
 			"//cdnjs.cloudflare.com/ajax/libs/three.js/r83/three.min.js",
 			"./js/vendor/OrbitControls.js",
-			"./js/CCapture.all.min.js",
+			"./js/vendor/CCapture.all.min.js",
 			"./js/Utils.js",
 			"./js/Main.js"
 		],
